@@ -515,20 +515,6 @@ input {
     color: black;
     transform: scale(1.1);
 }
-        .toast-tv {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 20px 40px;
-    border-radius: 15px;
-    font-size: 24px;
-    z-index: 10000;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    display: none;
-}
     </style>
 </head>
 
@@ -547,8 +533,9 @@ input {
 <div class="header">
     <div class="logo">PLUS ULTRA</div>
 <div class="header-right">
-    <div class="search-wrapper">
-        <input id="searchInput" class="search" placeholder="Buscar..." tabindex="0">
+    <div class="search-wrapper" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); border-radius: 8px; padding-right: 5px;">
+        <input id="searchInput" class="search" placeholder="Buscar..." tabindex="0" style="background: transparent; border: none; outline: none;">
+        <button id="clearSearch" class="clear-btn" tabindex="0" style="background: #444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; margin-left: 5px;">✕</button>
     </div>
     <button class="logout" onclick="logout()" tabindex="0">Salir</button>
 </div>
@@ -876,40 +863,54 @@ function initGlobalEvents() {
     });
 }
     
-    const logoutBtn = document.querySelector('.logout');
     const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearch');
+    const logoutBtn = document.querySelector('.logout');
 window.addEventListener('keydown', (e) => {
 // Definimos los elementos del header
-// 1. Si estamos en el buscador
-if (document.activeElement === searchInput) {
-    if (e.key === "ArrowRight") {
-        e.preventDefault();
-        if(logoutBtn) logoutBtn.focus(); // Salta directo a Salir
-    } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const firstCard = document.querySelector('.card');
-        if(firstCard) firstCard.focus();
-    } else if (e.key === "Enter") {
-        e.preventDefault();
-        ejecutarBusqueda(); // La función que ya tienes al final del archivo
-    } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
-        e.stopPropagation(); // Permite escribir y borrar sin que la app se mueva
+    // 1. Si estamos en el INPUT de búsqueda
+    if (document.activeElement === searchInput) {
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            clearBtn.focus(); // Salta a la X
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+            e.stopPropagation(); // Permite moverse entre letras o borrar
+        }
+        return;
     }
-    return;
-}
 
-// 3. Si estamos en Salir
-if (document.activeElement === logoutBtn) {
-    if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        searchInput.focus(); // Vuelve al buscador
-    } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        const firstCard = document.querySelector('.card');
-        if(firstCard) firstCard.focus();
+    // 2. Si estamos en el BOTÓN X (Borrar)
+    if (document.activeElement === clearBtn) {
+        if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            searchInput.focus(); // Vuelve al texto
+        } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            if(logoutBtn) logoutBtn.focus(); // Salta a Salir
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        }
+        return;
     }
-    return;
-}
+
+    // 3. Si estamos en el BOTÓN SALIR
+    if (document.activeElement === logoutBtn) {
+        if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            clearBtn.focus(); // Vuelve a la X
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        }
+        return;
+    }
 
     if ([27, 8, 461, 10009].includes(e.keyCode)) {
         if (isFullScreen) {
@@ -1457,14 +1458,14 @@ function processCategoryData(data) {
     return first15.concat(rest);
 }
 
-function renderAll(dataList = allVideos){
+function renderAll(){
     const sections = [ 
-        { id: "recentRow", data: [...dataList].slice(-30).reverse() }, 
-        { id: "cineRow", data: processCategoryData(dataList.filter(v => v.tipo === "cine")) },
-        { id: "peliculasRow", data: processCategoryData(dataList.filter(v => v.tipo === "pelicula")) }, 
-        { id: "kidsRow", data: processCategoryData(dataList.filter(v => v.tipo === "kids")) },
-        { id: "seriesRow", data: processCategoryData(dataList.filter(v => v.tipo === "serie")) }, 
-        { id: "animeRow", data: processCategoryData(dataList.filter(v => v.tipo === "anime")) } 
+        { id: "recentRow", data: [...allVideos].slice(-30).reverse() }, 
+        { id: "cineRow", data: processCategoryData(allVideos.filter(v => v.tipo === "cine")) },
+        { id: "peliculasRow", data: processCategoryData(allVideos.filter(v => v.tipo === "pelicula")) }, 
+        { id: "kidsRow", data: processCategoryData(allVideos.filter(v => v.tipo === "kids")) },
+        { id: "seriesRow", data: processCategoryData(allVideos.filter(v => v.tipo === "serie")) }, 
+        { id: "animeRow", data: processCategoryData(allVideos.filter(v => v.tipo === "anime")) } 
     ];
 
     sections.forEach(section => {
@@ -1679,45 +1680,6 @@ document.getElementById('clearSearch').addEventListener('keydown', (e) => {
         e.currentTarget.click();
     }
 });
-
-    function ejecutarBusqueda() {
-    const query = searchInput.value.toLowerCase().trim();
-    if (!query) return;
-
-    // Filtra tus datos (ajusta 'allVideos' al nombre de tu variable de datos)
-    const resultados = allVideos.filter(p => p.titulo.toLowerCase().includes(query));
-
-    if (resultados.length > 0) {
-        renderAll(resultados); // Renderiza solo los encontrados
-        
-        // Autoposiciona el foco en la primera card
-        setTimeout(() => {
-            const firstCard = document.querySelector('.card');
-            if (firstCard) firstCard.focus();
-        }, 150);
-    } else {
-        // Sin resultados: Limpia, muestra Toast y restaura todo
-        searchInput.value = '';
-        showToast("Sin resultados para: " + query);
-        renderAll(allVideos); 
-    }
-}
-
-function showToast(message) {
-    let toast = document.getElementById('searchToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'searchToast';
-        toast.className = 'toast-tv';
-        document.body.appendChild(toast);
-    }
-    toast.innerText = message;
-    toast.style.display = 'block';
-    
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000); // Se quita en 3 segundos
-}
 
 </script>
 </body>
