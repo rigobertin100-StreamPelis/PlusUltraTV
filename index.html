@@ -174,21 +174,20 @@ input {
         .carousel::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:10px;}
         
 .card {
-    /* Mantenemos tus estilos base */
     flex-shrink: 0;
     aspect-ratio: 2/3;
     position: relative;
     border-radius: 20px;
-    overflow: hidden;
+    overflow: hidden; /* Esto mantiene la imagen dentro de la card */
     cursor: pointer;
     background: #2c2c2e;
     scroll-snap-align: start;
-    
-    /* MODIFICACIÓN: Ancho por defecto para pantallas grandes */
     width: 220px; 
     
-    /* Tus animaciones se quedan igual */
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s, opacity 0.6s;
+    /* Añadimos margen para que al crecer no se corte con la de al lado */
+    margin: 15px 10px; 
+    
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s;
     animation: fadeUp 0.6s ease forwards;
 }
 
@@ -213,6 +212,18 @@ input {
         margin-top: 25px !important; /* Menos espacio entre filas */
         padding-left: 15px !important;
     }
+    .carousel {
+    padding-top: 30px !important;
+    padding-bottom: 30px !important;
+    overflow-y: visible !important;
+    display: flex !important;
+}
+    :focus {
+    outline: 5px solid #FFD700 !important;
+    outline-offset: 4px;
+    transform: scale(1.1) !important;
+    z-index: 9999 !important;
+}
 
     #heroTitle {
         font-size: 17px !important; /* 16px * 1.75 = 28px */
@@ -429,9 +440,11 @@ input {
 
 /* 1. Definimos el estado 'focus' para cualquier elemento interactivo */
 :focus {
-    outline: 4px solid #0a84ff !important; /* Borde azul brillante tipo iOS/Apple TV */
+    outline: 5px solid #FFD700 !important; /* Amarillo Oro */
     outline-offset: 4px;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: scale(1.1) !important;
+    z-index: 999; /* Para que la card seleccionada flote sobre las demás */
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
 }
 
 /* 2. Efecto de agrandado para las tarjetas y botones al estar seleccionados */
@@ -456,9 +469,22 @@ input {
 :focus:not(:focus-visible) {
     outline: none;
 }
-        .carousel {
+.carousel {
+    display: flex;
+    gap: 18px;
+    overflow-x: auto;
+    overflow-y: visible !important; /* Crucial para que el selector no se corte */
+    
+    /* Este padding es el que arregla el corte arriba y abajo */
+    padding: 30px 15px; 
+    
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    
+    /* Eliminamos márgenes que puedan estorbar */
+    margin-top: -15px;
+    margin-bottom: -15px;
 }
         .player .controls button, 
 .player .close, 
