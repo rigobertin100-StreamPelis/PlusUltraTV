@@ -501,6 +501,20 @@ input {
     padding: 15px 30px;
     font-size: 1.8rem;
 }
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding-right: 10px;
+}
+
+.clear-btn:focus {
+    outline: 4px solid #FFD700 !important; /* Selector Amarillo */
+    background: #FFD700;
+    color: black;
+    transform: scale(1.1);
+}
     </style>
 </head>
 
@@ -518,9 +532,13 @@ input {
 
 <div class="header">
     <div class="logo">PLUS ULTRA</div>
-    <div class="header-right">
-        <input id="search" class="search" placeholder="Buscar..." tabindex="0">
-        <button class="logout" onclick="logout()" tabindex="0">Salir</button>
+<div class="header-right">
+    <div class="search-wrapper" style="display: flex; align-items: center; background: rgba(255,255,255,0.1); border-radius: 8px; padding-right: 5px;">
+        <input id="searchInput" class="search" placeholder="Buscar..." tabindex="0" style="background: transparent; border: none; outline: none;">
+        <button id="clearSearch" class="clear-btn" tabindex="0" style="background: #444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; margin-left: 5px;">✕</button>
+    </div>
+    <button class="logout" onclick="logout()" tabindex="0">Salir</button>
+</div>
     </div>
 </div>
 
@@ -844,11 +862,55 @@ function initGlobalEvents() {
         }
     });
 }
-
+    
+    const searchInput = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearSearch');
+    const logoutBtn = document.querySelector('.logout');
 window.addEventListener('keydown', (e) => {
-    const playerOpen = document.getElementById("player").style.display === "flex";
-    const modalOpen = document.getElementById("seriesModal").style.display === "flex";
-    const isFullScreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+// Definimos los elementos del header
+    // 1. Si estamos en el INPUT de búsqueda
+    if (document.activeElement === searchInput) {
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            clearBtn.focus(); // Salta a la X
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        } else if (e.key === "ArrowLeft" || e.key === "Backspace") {
+            e.stopPropagation(); // Permite moverse entre letras o borrar
+        }
+        return;
+    }
+
+    // 2. Si estamos en el BOTÓN X (Borrar)
+    if (document.activeElement === clearBtn) {
+        if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            searchInput.focus(); // Vuelve al texto
+        } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            if(logoutBtn) logoutBtn.focus(); // Salta a Salir
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        }
+        return;
+    }
+
+    // 3. Si estamos en el BOTÓN SALIR
+    if (document.activeElement === logoutBtn) {
+        if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            clearBtn.focus(); // Vuelve a la X
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const firstCard = document.querySelector('.card');
+            if(firstCard) firstCard.focus();
+        }
+        return;
+    }
 
     if ([27, 8, 461, 10009].includes(e.keyCode)) {
         if (isFullScreen) {
@@ -1602,6 +1664,22 @@ function showNextButton() {
 // Evento para mostrar botón al mover mouse/tocar en el player
 document.getElementById('player').addEventListener('mousemove', showNextButton);
 document.getElementById('player').addEventListener('touchstart', showNextButton);
+    document.getElementById('clearSearch').addEventListener('click', () => {
+    const sInput = document.getElementById('searchInput');
+    sInput.value = ''; // Limpia el texto
+    sInput.focus();    // Devuelve el foco al buscador
+    
+    // Disparamos el evento input para que tu función de filtrado detecte el cambio
+    sInput.dispatchEvent(new Event('input', { bubbles: true }));
+});
+
+// Para que funcione con la tecla OK/Enter del control remoto
+document.getElementById('clearSearch').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        e.currentTarget.click();
+    }
+});
 
 </script>
 </body>
