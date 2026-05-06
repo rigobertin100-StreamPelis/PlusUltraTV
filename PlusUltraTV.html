@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- Optimización para TV: Evitamos el zoom y fijamos escala -->
+    <meta name="viewport" content="width=1920, user-scalable=no">
+    <title>PlusUltra Pro TV</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    
+    <script>
+    // Globales del Player Hero
+    let heroPlayer; 
+
+    function loadYouTubeIframeAPI(videoId) {
+        if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+            window.onYouTubeIframeAPIReady = () => createYTPlayer(videoId);
+        } else {
+            createYTPlayer(videoId);
+        }
+    }
+
+    function createYTPlayer(videoId) {
+        if (heroPlayer && heroPlayer.destroy) { heroPlayer.destroy(); }
+        heroPlayer = new YT.Player('youtubePlayer', {
+            height: '100%', width: '100%', videoId: videoId,
+            playerVars: { 'autoplay': 1, 'mute': 1, 'controls': 0, 'rel': 0, 'playlist': videoId, 'loop': 1, 'modestbranding': 1 },
+            events: {
+                'onReady': (event) => event.target.playVideo(),
+                'onStateChange': (event) => { if (event.data === 0 && window.setupHeroBanner) { window.setupHeroBanner(); } }
+            }
+        });
+    }
+    </script>
+
+    <style>
+        /* RESET PARA TV - Sin scrollbars y selección visual clara */
+        * { box-sizing: border-box; outline: none; }
+        body {
+            margin: 0; background: #000; color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; /* El scroll lo manejamos internamente */
+        }
+
+        /* EFECTO DE ENFOQUE GLOBAL (Crucial para TV) */
+        [tabindex="0"]:focus {
+            transform: scale(1.1) !important;
+            border: 4px solid #0a84ff !important;
+            box-shadow: 0 0 30px rgba(10, 132, 255, 0.8) !important;
+            z-index: 999 !important;
+            background: rgba(255,255,255,0.1) !important;
+        }
+
+        .header {
+            position: fixed; top: 0; width: 100%; height: 100px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 60px; z-index: 1000;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+        }
+        .header .logo { color: #007aff; font-weight: 900; font-size: 32px; letter-spacing: 2px; }
+        
+        .header-right { display: flex; gap: 20px; }
+        .search { 
+            padding: 15px 25px; border-radius: 40px; background: rgba(255,255,255,0.1);
+            border: 2px solid transparent; color: #fff; font-size: 20px; width: 400px;
+        }
+
+        .hero-banner {
+            height: 85vh; width: 100%; position: relative;
+            margin-top: 0; overflow: hidden; display: none;
+        }
+        .hero-video-bg { position: absolute; inset: 0; pointer-events: none; }
+        .hero-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, #000 10%, transparent 60%),
+                        linear-gradient(to top, #000 5%, transparent 40%);
+            display: flex; flex-direction: column; justify-content: center; padding: 0 80px;
+        }
+        #heroTitle { font-size: 70px; margin: 0; max-width: 50%; text-transform: uppercase; }
+        .hero-btn { 
+            width: fit-content; padding: 20px 50px; background: #fff; color: #000;
+            border: none; border-radius: 15px; font-size: 24px; font-weight: bold; margin-top: 30px;
+        }
+
+        /* FILAS Y CAROUSEL PARA TV */
+        .main-content { padding-top: 10px; transition: transform 0.5s ease; }
+        .row { margin: 40px 0 0 60px; }
+        .row h2 { font-size: 30px; margin-bottom: 20px; color: rgba(255,255,255,0.8); }
+        .carousel { display: flex; gap: 25px; overflow: hidden; padding: 20px 0; }
+
+        .card {
+            flex-shrink: 0; width: 280px; aspect-ratio: 2/3;
+            border-radius: 20px; background: #1c1c1e; overflow: hidden;
+            transition: all 0.3s ease; border: 4px solid transparent;
+        }
+        .card img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* MODALES */
+        .series-modal, .player {
+            position: fixed; inset: 0; display: none;
+            background: rgba(0,0,0,0.95); z-index: 10000;
+        }
+        .series-inner { 
+            width: 90%; height: 85%; background: #1c1c1e; border-radius: 30px;
+            margin: 4% auto; display: flex; overflow: hidden;
+        }
+        .modal-left { flex: 1; position: relative; }
+        .modal-right { flex: 1.2; padding: 60px; overflow-y: auto; }
+        
+        .episode-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 30px; }
+        .episode-list button { 
+            padding: 20px; background: rgba(255,255,255,0.05); border: none;
+            color: #fff; text-align: left; border-radius: 15px; font-size: 18px;
+        }
+
+        #loginModal {
+            position: fixed; inset: 0; background: #000; z-index: 99999;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #loginBox { width: 500px; display: flex; flex-direction: column; gap: 20px; }
+        #loginBox input { padding: 25px; border-radius: 15px; background: #1c1c1e; border: none; color: #fff; font-size: 22px; }
+        #loginBox button { padding: 25px; background: #0a84ff; border-radius: 15px; color: #fff; font-weight: bold; font-size: 22px; }
+
+        /* PLAYER CONTROLS (TV Style) */
+        .player-ui {
+            position: absolute; bottom: 0; width: 100%; padding: 60px;
+            background: linear-gradient(to top, #000, transparent);
+            display: flex; flex-direction: column; gap: 20px; opacity: 0; transition: 0.3s;
+        }
+        .player:hover .player-ui, .player:focus-within .player-ui { opacity: 1; }
+        .progress-bar { height: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; width: 100%; }
+        .progress-fill { height: 100%; background: #0a84ff; width: 0%; }
+        
+        /* CONTINUAR VIENDO OVERLAY */
+        .continue-overlay {
+            position: absolute; bottom: 0; width: 100%; padding: 15px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+        }
+        .continue-progress-bg { height: 6px; background: rgba(255,255,255,0.2); margin-top: 5px; }
+        .continue-progress-fill { height: 100%; background: #0a84ff; }
+    </style>
+</head>
+<body>
+
+<!-- Login optimizado para foco -->
+<div id="loginModal">
+    <div id="loginBox">
+        <h1 style="text-align:center; font-size: 50px;">PLUS ULTRA</h1>
+        <input id="loginUser" type="email" placeholder="Correo" tabindex="0">
+        <input id="loginPass" type="password" placeholder="Contraseña" tabindex="0">
+        <button id="loginBtn" tabindex="0">INGRESAR</button>
+        <p id="loginError" style="color:#ff453a; display:none; text-align:center">Credenciales incorrectas</p>
+    </div>
+</div>
+
+<div class="header">
+    <div class="logo">PLUS ULTRA</div>
+    <div class="header-right">
+        <input id="search" class="search" placeholder="Buscar..." tabindex="0">
+        <button class="hero-btn" style="margin:0; background:#ff3b30; color:#fff" onclick="logout()" tabindex="0">SALIR</button>
+    </div>
+</div>
+
+<div class="main-content" id="mainScroll">
+    <div id="heroBanner" class="hero-banner">
+        <div id="youtubePlayer" class="hero-video-bg"></div>
+        <div class="hero-overlay">
+            <h1 id="heroTitle"></h1>
+            <button id="heroPlayBtn" class="hero-btn" tabindex="0">▶ REPRODUCIR</button>
+        </div>
+    </div>
+
+    <div id="searchResultsContainer" class="row" style="display:none">
+        <h2>Resultados</h2>
+        <div class="carousel" id="searchResultsRow"></div>
+    </div>
+
+    <div id="app"></div>
+</div>
+
+<!-- Modal Series Adaptado TV -->
+<div class="series-modal" id="seriesModal">
+    <div class="series-inner">
+        <div class="modal-left" id="modalHero"></div>
+        <div class="modal-right">
+            <h1 id="seriesTitle" style="font-size: 50px; margin:0"></h1>
+            <p id="tmdbMeta" style="color: #0a84ff; font-size: 24px; font-weight: bold;"></p>
+            <p id="tmdbOverview" style="font-size: 22px; line-height: 1.5; color: rgba(255,255,255,0.7)"></p>
+            
+            <div id="seasonSelect" style="display:flex; gap:15px; margin-top:30px;"></div>
+            <div class="episode-list" id="episodeList"></div>
+            
+            <div style="margin-top: 40px; display:flex; gap:20px;">
+                <button id="modalPlayBtn" class="hero-btn" tabindex="0">REPRODUCIR AHORA</button>
+                <button id="closeModalBtn" class="hero-btn" style="background:rgba(255,255,255,0.1); color:#fff" onclick="closeSeriesModal()" tabindex="0">VOLVER</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player TV -->
+<div class="player" id="player">
+    <video id="video" style="width:100%; height:100%"></video>
+    <div class="player-ui">
+        <h2 id="playerTitle" style="margin:0"></h2>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div style="display:flex; gap:20px;">
+                <button class="hero-btn" onclick="togglePlay()" tabindex="0">PAUSE / PLAY</button>
+                <button id="nextEpBtn" class="hero-btn" onclick="nextEpisode()" tabindex="0" style="display:none">SIGUIENTE EPISODIO</button>
+            </div>
+            <button class="hero-btn" style="background:#ff3b30; color:#fff" onclick="closeVideo()" tabindex="0">SALIR DEL VIDEO</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDocs, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAt1E2XmlsxV52dAwRaXW_e4XdDQxiP8lg",
+    authDomain: "midata-40f73.firebaseapp.com",
+    projectId: "midata-40f73",
+    storageBucket: "midata-40f73.firebasestorage.app",
+    messagingSenderId: "104287406146",
+    appId: "1:104287406146:web:d9fad446e22629559dc5db"
+};
+
+const appFirebase = initializeApp(firebaseConfig);
+const auth = getAuth(appFirebase);
+const db = getFirestore(appFirebase);
+const WORKER_URL = "https://odd-credit-e6f8.rigobertin100.workers.dev";
+const STORAGE_KEY = "plus_ultra_progress";
+
+let allVideos = [];
+let currentSeries = null;
+let currentSeason = 0;
+let currentEpisode = 0;
+
+// --- LÓGICA DE NAVEGACIÓN TV ---
+window.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    
+    // Navegación Básica con Flechas (Scroll Automático)
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        setTimeout(() => {
+            const newActive = document.activeElement;
+            if (newActive) {
+                newActive.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+        }, 50);
+    }
+
+    // Botón Atrás (Back/Return en Smart TV)
+    if (e.key === "Backspace" || e.keyCode === 461 || e.keyCode === 10009) {
+        if (document.getElementById("player").style.display === "flex") {
+            closeVideo();
+        } else if (document.getElementById("seriesModal").style.display === "flex") {
+            closeSeriesModal();
+        }
+    }
+});
+
+// --- FIREBASE & AUTH ---
+function getDeviceId() {
+    let id = localStorage.getItem("plusultra_device_id");
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem("plusultra_device_id", id); }
+    return id;
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const deviceId = getDeviceId();
+        const sessionsRef = collection(db, "users", user.uid, "active_sessions");
+        const snapshot = await getDocs(sessionsRef);
+        let sessions = snapshot.docs.map(d => d.id);
+
+        if (!sessions.includes(deviceId) && sessions.length >= 2) {
+            alert("Límite de 2 dispositivos alcanzado.");
+            signOut(auth);
+            return;
+        }
+        
+        await setDoc(doc(sessionsRef, deviceId), { lastLogin: Date.now() });
+        document.getElementById("loginModal").style.display = "none";
+        initCatalog();
+    } else {
+        document.getElementById("loginModal").style.display = "flex";
+    }
+});
+
+// --- CATALOGO & RENDER ---
+async function initCatalog() {
+    const res = await fetch(WORKER_URL);
+    allVideos = await res.json();
+    buildUI();
+}
+
+function buildUI() {
+    const app = document.getElementById("app");
+    app.innerHTML = `
+        <div class="row" id="contHeader"><h2>Continuar viendo</h2><div class="carousel" id="continueRow"></div></div>
+        <div class="row"><h2>Cine</h2><div class="carousel" id="cineRow"></div></div>
+        <div class="row"><h2>Películas</h2><div class="carousel" id="peliculasRow"></div></div>
+        <div class="row"><h2>Series</h2><div class="carousel" id="seriesRow"></div></div>
+        <div class="row"><h2>Anime</h2><div class="carousel" id="animeRow"></div></div>
+    `;
+    renderAll();
+    setupHeroBanner();
+}
+
+function renderAll() {
+    const categories = [
+        { id: "cineRow", type: "cine" },
+        { id: "peliculasRow", type: "pelicula" },
+        { id: "seriesRow", type: "serie" },
+        { id: "animeRow", type: "anime" }
+    ];
+
+    categories.forEach(cat => {
+        const container = document.getElementById(cat.id);
+        const filtered = allVideos.filter(v => v.tipo === cat.type).reverse();
+        filtered.forEach(v => container.appendChild(createCard(v)));
+    });
+    renderContinue();
+}
+
+function createCard(v, isContinue = false) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.tabIndex = 0;
+    card.innerHTML = `<img src="${v.img}">`;
+    
+    if (isContinue) {
+        const pct = (v._prog.time / v._prog.duration) * 100;
+        card.innerHTML += `
+            <div class="continue-overlay">
+                <div style="font-size:14px; font-weight:bold; color:#0a84ff">
+                    ${v.tipo.includes('serie') ? `T${v._prog.season+1}:E${v._prog.episode+1}` : 'Continuar'}
+                </div>
+                <div class="continue-progress-bg"><div class="continue-progress-fill" style="width:${pct}%"></div></div>
+            </div>`;
+    }
+
+    card.onclick = () => {
+        if (isContinue) {
+            if (v.tipo === "serie" || v.tipo === "anime") {
+                currentSeries = v;
+                currentSeason = v._prog.season || 0;
+                currentEpisode = v._prog.episode || 0;
+                openVideo(v.temporadas[currentSeason].episodios[currentEpisode]);
+            } else {
+                openVideo(v);
+            }
+        } else {
+            openSeriesModal(v);
+        }
+    };
+    return card;
+}
+
+// --- PLAYER & PROGRESS ---
+const playerCtrl = {
+    video: null,
+    currentId: null,
+    init() {
+        this.video = document.getElementById("video");
+        this.video.ontimeupdate = () => {
+            const fill = document.getElementById("progressFill");
+            if(fill) fill.style.width = (this.video.currentTime / this.video.duration * 100) + "%";
+            
+            if (this.currentId && this.video.currentTime > 10) {
+                this.saveProgress();
+            }
+        };
+        this.video.onended = () => {
+            if (currentSeries) nextEpisode(); else closeVideo();
+        };
+    },
+    saveProgress() {
+        const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        data[this.currentId] = {
+            time: this.video.currentTime,
+            duration: this.video.duration,
+            updated: Date.now(),
+            season: currentSeries ? currentSeason : null,
+            episode: currentSeries ? currentEpisode : null
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // Sincronización silenciosa con Firebase
+        const user = auth.currentUser;
+        if(user) {
+            setDoc(doc(db, "users", user.uid, "progress", this.currentId), data[this.currentId]);
+        }
+    }
+};
+
+window.openVideo = async (v) => {
+    document.getElementById("seriesModal").style.display = "none";
+    const p = document.getElementById("player");
+    p.style.display = "flex";
+    p.focus();
+    
+    document.getElementById("playerTitle").innerText = v.titulo;
+    playerCtrl.currentId = currentSeries ? currentSeries.titulo : v.titulo;
+    
+    // Lógica Cloudflare R2
+    let url = v.url;
+    if (v.fileKey) {
+        const r = await fetch(`${WORKER_URL}?getFile=${v.fileKey}`);
+        const d = await r.json();
+        url = d.url;
+    }
+
+    const video = document.getElementById("video");
+    video.src = url;
+    
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")[playerCtrl.currentId];
+    if (saved && (!currentSeries || (saved.season === currentSeason && saved.episode === currentEpisode))) {
+        video.currentTime = saved.time;
+    }
+
+    video.play();
+    document.getElementById("nextEpBtn").style.display = currentSeries ? "block" : "none";
+};
+
+// --- GLOBALES REQUERIDAS ---
+window.closeVideo = () => {
+    playerCtrl.saveProgress();
+    document.getElementById("video").pause();
+    document.getElementById("player").style.display = "none";
+    if (currentSeries) openSeriesModal(currentSeries);
+    renderContinue();
+};
+
+window.togglePlay = () => {
+    const v = document.getElementById("video");
+    v.paused ? v.play() : v.pause();
+};
+
+window.openSeriesModal = async (v) => {
+    currentSeries = v;
+    const modal = document.getElementById("seriesModal");
+    modal.style.display = "flex";
+    modal.focus();
+
+    document.getElementById("seriesTitle").innerText = v.titulo;
+    document.getElementById("modalHero").style.backgroundImage = `url(${v.backdrop || v.img})`;
+    document.getElementById("modalHero").style.backgroundSize = "cover";
+
+    if (v.tipo === "serie" || v.tipo === "anime") {
+        document.getElementById("modalPlayBtn").style.display = "none";
+        renderEpisodes(0);
+    } else {
+        document.getElementById("modalPlayBtn").style.display = "block";
+        document.getElementById("modalPlayBtn").onclick = () => { currentSeries = null; openVideo(v); };
+    }
+};
+
+window.closeSeriesModal = () => {
+    document.getElementById("seriesModal").style.display = "none";
+    currentSeries = null;
+};
+
+function renderEpisodes(sIdx) {
+    currentSeason = sIdx;
+    const list = document.getElementById("episodeList");
+    list.innerHTML = "";
+    currentSeries.temporadas[sIdx].episodios.forEach((ep, i) => {
+        const btn = document.createElement("button");
+        btn.innerText = ep.titulo;
+        btn.tabIndex = 0;
+        btn.onclick = () => { currentEpisode = i; openVideo(ep); };
+        list.appendChild(btn);
+    });
+}
+
+window.nextEpisode = () => {
+    const temp = currentSeries.temporadas[currentSeason];
+    if (currentEpisode < temp.episodios.length - 1) {
+        currentEpisode++;
+        openVideo(temp.episodios[currentEpisode]);
+    } else if (currentSeason < currentSeries.temporadas.length - 1) {
+        currentSeason++;
+        currentEpisode = 0;
+        openVideo(currentSeries.temporadas[currentSeason].episodios[currentEpisode]);
+    } else {
+        closeVideo();
+    }
+};
+
+function renderContinue() {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const row = document.getElementById("continueRow");
+    row.innerHTML = "";
+    
+    let list = Object.keys(data).map(id => {
+        const base = allVideos.find(v => v.titulo === id);
+        return base ? { ...base, _prog: data[id] } : null;
+    }).filter(v => v && v._prog.time > 10 && v._prog.time < v._prog.duration * 0.9);
+
+    list.sort((a,b) => b._prog.updated - a._prog.updated);
+    list.slice(0, 6).forEach(v => row.appendChild(createCard(v, true)));
+    document.getElementById("contHeader").style.display = list.length ? "block" : "none";
+}
+
+async function setupHeroBanner() {
+    const peli = allVideos.filter(v => v.tipo === "cine").pop();
+    if (!peli) return;
+    document.getElementById("heroBanner").style.display = "block";
+    document.getElementById("heroTitle").innerText = peli.titulo;
+    document.getElementById("heroPlayBtn").onclick = () => openVideo(peli);
+    if(peli.trailerID) loadYouTubeIframeAPI(peli.trailerID);
+}
+
+window.logout = async () => {
+    const deviceId = getDeviceId();
+    const user = auth.currentUser;
+    if(user) {
+        await deleteDoc(doc(db, "users", user.uid, "active_sessions", deviceId));
+    }
+    signOut(auth);
+};
+
+// Inicializar el controlador del player
+playerCtrl.init();
+
+</script>
+</body>
+</html>
